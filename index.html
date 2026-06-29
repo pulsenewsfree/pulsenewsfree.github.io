@@ -92,6 +92,13 @@
   /* Fluid Typography Scaling */
   .hero-title{font-size:clamp(1.75rem, 4vw, 2.5rem)}
   
+  /* Sidebar Collapse Logic */
+  body.sidebar-collapsed #expandBtn { display: inline-flex !important; }
+  body.sidebar-collapsed aside { display: none !important; }
+  @media (min-width: 1024px) {
+    body.sidebar-collapsed #mainGrid { grid-template-columns: 1fr !important; }
+  }
+  
   @keyframes pulse-live{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
   .pulse-dot{animation:pulse-live 1.5s ease-in-out infinite}
   @keyframes fade-in-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
@@ -159,6 +166,11 @@
 </style>
 </head>
 <body>
+
+<!-- Floating Expand Button (Hidden by default) -->
+<button id="expandBtn" class="hidden fixed top-32 left-4 z-40 btn btn-ghost" style="display:none;">
+  <i class="fa-solid fa-bars"></i> Settings
+</button>
 
 <!-- Top ticker -->
 <div class="border-b border-[var(--border)] bg-[var(--bg-2)] overflow-hidden relative z-10">
@@ -228,7 +240,7 @@
 
 <!-- Main -->
 <main class="max-w-[1600px] mx-auto px-4 md:px-6 py-6 relative z-10">
-  <div class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
+  <div id="mainGrid" class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
     
     <!-- Sidebar -->
     <aside>
@@ -332,6 +344,11 @@
           </div>
         </div>
         
+        <!-- Collapse Button -->
+        <button id="collapseBtn" class="btn btn-primary w-full justify-center">
+          <i class="fa-solid fa-compress"></i> Save & Collapse Settings
+        </button>
+        
       </div>
     </aside>
     
@@ -401,6 +418,10 @@ const SOURCES = [
   { id:'wired', name:'WIRED', url:'https://www.wired.com/feed/rss', homepage:'https://www.wired.com', category:'Tech', color:'#a0a0a0' },
   { id:'ars', name:'Ars Technica', url:'https://feeds.arstechnica.com/arstechnica/index', homepage:'https://arstechnica.com', category:'Tech', color:'#ff4e00' },
   { id:'espn', name:'ESPN', url:'https://www.espn.com/espn/rss/news', homepage:'https://www.espn.com', category:'Sports', color:'#d50032' },
+  { id:'bbc_sport', name:'BBC Sport', url:'http://feeds.bbci.co.uk/sport/rss.xml', homepage:'https://www.bbc.com/sport', category:'Sports', color:'#fcb813' },
+  { id:'sky_sport', name:'Sky Sports', url:'https://www.skysports.com/rss/12040', homepage:'https://www.skysports.com', category:'Sports', color:'#0057a0' },
+  { id:'yahoo_sport', name:'Yahoo Sports', url:'https://sports.yahoo.com/rss/', homepage:'https://sports.yahoo.com', category:'Sports', color:'#6001d2' },
+  { id:'bleacher', name:'Bleacher Report', url:'https://bleacherreport.com/articles/feed', homepage:'https://bleacherreport.com', category:'Sports', color:'#ff0000' },
   { id:'nature', name:'Nature', url:'https://www.nature.com/nature.rss', homepage:'https://www.nature.com', category:'Science', color:'#1077c6' },
   { id:'economist', name:'The Economist', url:'https://www.economist.com/finance-and-economics/rss.xml', homepage:'https://www.economist.com', category:'Business', color:'#e3120b' },
   { id:'cnbc', name:'CNBC', url:'https://www.cnbc.com/id/100003114/device/rss/rss.html', homepage:'https://www.cnbc.com', category:'Business', color:'#005594' },
@@ -1289,6 +1310,15 @@ function init(){
   
   document.addEventListener('keydown', e => {
     if(e.key === 'Escape') closeModal();
+  });
+  
+  // Sidebar Collapse Logic
+  document.getElementById('collapseBtn').addEventListener('click', () => {
+    document.body.classList.add('sidebar-collapsed');
+  });
+  
+  document.getElementById('expandBtn').addEventListener('click', () => {
+    document.body.classList.remove('sidebar-collapsed');
   });
   
   updateClock();
