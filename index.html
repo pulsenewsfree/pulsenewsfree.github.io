@@ -357,9 +357,9 @@
       <div id="articlesGrid" class="hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"></div>
       
       <div id="emptyState" class="hidden text-center py-24">
-        <i class="fa-solid fa-newspaper text-6xl text-[var(--border-2)] mb-4"></i>
-        <h3 class="serif text-2xl font-bold mb-2">No articles found</h3>
-        <p class="text-[var(--muted)] text-sm">Try adjusting your filters or search query</p>
+        <i class="fa-solid fa-cloud-bolt text-6xl text-[var(--border-2)] mb-4"></i>
+        <h3 class="serif text-2xl font-bold mb-2">Live feeds unreachable</h3>
+        <p class="text-[var(--muted)] text-sm max-w-md mx-auto">Please ensure the Netlify Function is deployed and running, then try refreshing.</p>
       </div>
     </section>
   </div>
@@ -642,114 +642,67 @@ function updateAuthUI(){
 }
 
 // ============================================================
-// Feed Fetching
+// Feed Fetching (Netlify Serverless Function)
 // ============================================================
-async function fetchFeed(source){
-  try{
-    // Fetch up to 25 items per source to ensure we can reach 250 total real articles
-    const url = 'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(source.url)+'&count=25';
-    const ctrl = new AbortController();
-    const t = setTimeout(()=>ctrl.abort(), 10000);
-    const res = await fetch(url, {signal: ctrl.signal});
-    clearTimeout(t);
-    const data = await res.json();
-    if(data.status === 'ok' && data.items && data.items.length){
-      return data.items.filter(it => it.title && it.link).map(item => ({
-        id: item.link,
-        title: item.title,
-        description: stripHtml(item.description || item.content || '').slice(0, 300),
-        link: item.link,
-        pubDate: item.pubDate,
-        image: item.thumbnail || (item.enclosure && item.enclosure.link) || extractImage(item.content || '') || extractImage(item.description || ''),
-        source: source,
-      }));
-    }
-  }catch(e){ console.warn('rss2json failed for', source.name, e.message); }
-  
-  try{
-    const url = 'https://api.allorigins.win/raw?url='+encodeURIComponent(source.url);
-    const ctrl = new AbortController();
-    const t = setTimeout(()=>ctrl.abort(), 10000);
-    const res = await fetch(url, {signal: ctrl.signal});
-    clearTimeout(t);
-    const text = await res.text();
-    const doc = new DOMParser().parseFromString(text, 'text/xml');
-    const items = Array.from(doc.querySelectorAll('item, entry')).slice(0, 25);
-    return items.map(item => {
-      const get = sel => { const el = item.querySelector(sel); return el ? el.textContent.trim() : ''; };
-      const getAttr = (sel, attr) => { const el = item.querySelector(sel); return el ? el.getAttribute(attr) : ''; };
-      const link = get('link') || getAttr('link', 'href');
-      const desc = get('description') || get('summary') || get('content');
-      const enclosure = item.querySelector('enclosure');
-      const mediaContent = item.querySelector('media\\\\:content, content');
-      const image = extractImage(desc) || (enclosure && enclosure.getAttribute('url')) || (mediaContent && mediaContent.getAttribute('url')) || '';
-      return {
-        id: link || (get('title') + get('pubDate')),
-        title: get('title'),
-        description: stripHtml(desc).slice(0, 300),
-        link: link || source.homepage,
-        pubDate: get('pubDate') || get('published') || get('updated'),
-        image: image,
-        source: source,
-      };
-    }).filter(a => a.title);
-  }catch(e){ console.warn('allorigins failed for', source.name, e.message); return []; }
-}
-
 async function fetchAllFeeds(){
   state.loading = true;
   if (state.articles.length === 0) setLoadingState();
   
   const enabled = SOURCES.filter(s => state.activeSources.has(s.id));
-  const results = await Promise.allSettled(enabled.map(s => fetchFeed(s)));
+  const sourceIds = enabled.map(s => s.id).join(',');
   
-  const fetchedArticles = [];
-  let sourcesOk = 0;
-  results.forEach((r, i) => {
-    if(r.status === 'fulfilled' && r.value.length){
-      sourcesOk++;
-      fetchedArticles.push(...r.value);
+  try {
+    const res = await fetch(`/.netlify/functions/news?sources=${sourceIds}`);
+    if (!res.ok) throw new Error('Network response was not ok');
+    
+    const data = await res.json();
+    const fetchedArticles = data.articles || [];
+    const sourcesOk = data.successCount || 0;
+    
+    if (fetchedArticles.length === 0 && state.articles.length === 0) {
+      state.loading = false;
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('emptyState').classList.remove('hidden');
+      return;
     }
-  });
-  
-  if (fetchedArticles.length === 0 && state.articles.length === 0) {
+    
+    // Merge newly fetched articles with existing ones
+    let combined = [...state.articles, ...fetchedArticles];
+    
+    // Deduplicate
+    const seen = new Set();
+    combined = combined.filter(a => {
+      if(!a.id || seen.has(a.id)) return false;
+      seen.add(a.id);
+      return true;
+    });
+    
+    // Sort by date descending (newest first)
+    combined.sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0));
+    
+    // Keep only the 250 most recent articles, dropping the oldest
+    state.articles = combined.slice(0, 250);
+    
+    state.articleMap = {};
+    state.articles.forEach((a, i) => state.articleMap[i] = a);
+    
+    // Only check keyword alerts on newly fetched items to avoid spamming old ones
+    checkKeywordAlerts(fetchedArticles);
+    
+    document.getElementById('statArticles').textContent = state.articles.length;
+    document.getElementById('statSources').textContent = sourcesOk;
+    document.getElementById('statSourcesTotal').textContent = enabled.length;
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    
+    state.loading = false;
+    applyFilters();
+    updateTicker();
+  } catch (error) {
+    console.error('Fetch error:', error);
     state.loading = false;
     document.getElementById('loadingState').classList.add('hidden');
     document.getElementById('emptyState').classList.remove('hidden');
-    return;
   }
-  
-  // Merge newly fetched articles with existing ones
-  let combined = [...state.articles, ...fetchedArticles];
-  
-  // Deduplicate
-  const seen = new Set();
-  combined = combined.filter(a => {
-    if(!a.id || seen.has(a.id)) return false;
-    seen.add(a.id);
-    return true;
-  });
-  
-  // Sort by date descending (newest first)
-  combined.sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0));
-  
-  // Keep only the 250 most recent articles, dropping the oldest
-  state.articles = combined.slice(0, 250);
-  
-  state.articleMap = {};
-  state.articles.forEach((a, i) => state.articleMap[i] = a);
-  
-  // Only check keyword alerts on newly fetched items to avoid spamming old ones
-  checkKeywordAlerts(fetchedArticles);
-  
-  document.getElementById('statArticles').textContent = state.articles.length;
-  document.getElementById('statSources').textContent = sourcesOk;
-  document.getElementById('statSourcesTotal').textContent = enabled.length;
-  document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-  
-  state.loading = false;
-  applyFilters();
-  updateTicker();
 }
 
 // ============================================================
