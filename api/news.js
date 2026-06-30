@@ -34,7 +34,7 @@ async function fetchFeed(source) {
   try {
     const res = await fetch(source.url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(3000) // Reduced to 3s to prevent Vercel 504 Gateway Timeout
     });
     if (!res.ok) return [];
     const xml = await res.text();
