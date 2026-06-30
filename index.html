@@ -30,6 +30,8 @@
 <meta property="twitter:image" content="https://picsum.photos/seed/pulse-news/1200/630">
 
 <script src="https://cdn.tailwindcss.com"></script>
+<!-- Add Supabase for Global Auth -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -174,10 +176,10 @@
     <div id="accountBox" class="card p-5" style="cursor:default">
       <div id="accountLoggedOut">
         <div class="flex items-center gap-2 mb-3">
-          <i class="fa-solid fa-user-shield text-[var(--accent)]"></i>
-          <h3 class="serif text-lg font-bold">Save Your Alerts</h3>
+          <i class="fa-solid fa-cloud text-[var(--accent)]"></i>
+          <h3 class="serif text-lg font-bold">Global Account</h3>
         </div>
-        <p class="text-xs text-[var(--muted)] mb-4 leading-relaxed">Create a local account to save your keyword alerts, bookmarks, and source preferences across sessions.</p>
+        <p id="accountHelpText" class="text-xs text-[var(--muted)] mb-4 leading-relaxed">Create a global account to sync your keyword alerts, bookmarks, and source preferences across all your devices.</p>
         <div class="space-y-2">
           <input id="authEmail" type="email" placeholder="Email address" class="input text-xs">
           <input id="authPass" type="password" placeholder="Password" class="input text-xs">
@@ -195,7 +197,7 @@
             <p class="text-sm font-semibold truncate" id="accountEmail">user@example.com</p>
           </div>
         </div>
-        <p class="text-xs text-[var(--muted)] mb-4 leading-relaxed">Your alerts and bookmarks are being saved automatically.</p>
+        <p class="text-xs text-[var(--muted)] mb-4 leading-relaxed">Your alerts and bookmarks are synced to the cloud automatically.</p>
         <button id="logOutBtn" class="btn btn-ghost text-xs w-full justify-center">
           <i class="fa-solid fa-right-from-bracket"></i> Log Out
         </button>
@@ -423,6 +425,17 @@
 // PULSE — Live News Aggregator & Markets
 // ============================================================
 
+// --- SUPABASE CONFIG (Configured with provided keys) ---
+const SUPABASE_URL = 'https://ezoqxuxtzuuyufbvfayr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6b3F4dXh0enV1eXVmYnZmYXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MjA3MTEsImV4cCI6MjA5ODM5NjcxMX0.7zgUMD5Mf9Y_l8HUjrzQxfZ49I22j8_2S3P2UmQZnIg';
+let supabase;
+
+if (SUPABASE_URL && SUPABASE_KEY) {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} else {
+  console.warn("Supabase keys not set. Global login will not work.");
+}
+
 const SOURCES = [
   { id:'bbc', name:'BBC', url:'http://feeds.bbci.co.uk/news/world/rss.xml', homepage:'https://www.bbc.com/news', category:'World', color:'#bb1919' },
   { id:'guardian', name:'The Guardian', url:'https://www.theguardian.com/world/rss', homepage:'https://www.theguardian.com', category:'World', color:'#052962' },
@@ -600,42 +613,124 @@ function playBeep(){
 }
 
 // ============================================================
-// Account System
+// Cloud Account System (Supabase)
 // ============================================================
-function getUsers(){ return JSON.parse(localStorage.getItem('pulse_users') || '{}'); }
-function saveUsers(users){ localStorage.setItem('pulse_users', JSON.stringify(users)); }
-function getSession(){ return localStorage.getItem('pulse_session'); }
-function setSession(email){ localStorage.setItem('pulse_session', email); }
-function clearSession(){ localStorage.removeItem('pulse_session'); }
-
-function getUserData(email){
-  const users = getUsers();
-  return users[email] ? users[email].data : null;
-}
+let saveUserDataTimer;
 
 function saveUserData(){
-  if(!state.currentUser) return;
-  const users = getUsers();
-  if(users[state.currentUser]){
-    users[state.currentUser].data = {
-      keywords: state.keywords,
-      bookmarks: state.bookmarks,
-      activeSources: Array.from(state.activeSources),
-      soundEnabled: state.soundEnabled,
-      notifEnabled: state.notifEnabled,
-    };
-    saveUsers(users);
+  if (state.currentUser && supabase) {
+    clearTimeout(saveUserDataTimer);
+    saveUserDataTimer = setTimeout(async () => {
+      try {
+        const { error } = await supabase.auth.updateUser({
+          data: {
+            keywords: state.keywords,
+            bookmarks: state.bookmarks,
+            activeSources: Array.from(state.activeSources),
+            soundEnabled: state.soundEnabled,
+            notifEnabled: state.notifEnabled,
+          }
+        });
+        if (error) console.error("Cloud sync error:", error.message);
+      } catch(e) { console.error(e); }
+    }, 1000);
+  } else {
+    clearTimeout(saveUserDataTimer);
+    saveUserDataTimer = setTimeout(() => {
+      localStorage.setItem('pulse_guest_data', JSON.stringify({
+        keywords: state.keywords,
+        bookmarks: state.bookmarks,
+        activeSources: Array.from(state.activeSources),
+        soundEnabled: state.soundEnabled,
+        notifEnabled: state.notifEnabled,
+      }));
+    }, 500);
   }
 }
 
-function loadUserData(email){
-  const data = getUserData(email);
-  if(data){
-    state.keywords = data.keywords || [];
-    state.bookmarks = data.bookmarks || [];
-    state.activeSources = new Set(data.activeSources && data.activeSources.length ? data.activeSources : SOURCES.map(s=>s.id));
-    state.soundEnabled = data.soundEnabled || false;
-    state.notifEnabled = data.notifEnabled || false;
+async function handleSignUp(){
+  if (!supabase) return alert("Supabase is not configured. Please check the setup instructions.");
+  const email = document.getElementById('authEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('authPass').value;
+  if(!email || !pass) return alert('Please enter email and password');
+  if(!email.includes('@')) return alert('Please enter a valid email');
+  
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: {
+          keywords: state.keywords,
+          bookmarks: state.bookmarks,
+          activeSources: Array.from(state.activeSources),
+          soundEnabled: state.soundEnabled,
+          notifEnabled: state.notifEnabled,
+        }
+      }
+    });
+    
+    if (error) throw error;
+    
+    if (data.user && !data.session) {
+      alert('Account created! Please check your email to confirm your registration before logging in.');
+    } else if (data.session) {
+      state.currentUser = email;
+      updateAuthUI();
+      showToast({source:{name:'PULSE', color:'#ff8c42'}, title:'Account created successfully!', description:'Your alerts and preferences are now saved globally.'}, ['Welcome']);
+    }
+  } catch(e) {
+    alert(e.message);
+  }
+}
+
+async function handleLogIn(){
+  if (!supabase) return alert("Supabase is not configured. Please check the setup instructions.");
+  const email = document.getElementById('authEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('authPass').value;
+  if(!email || !pass) return alert('Please enter email and password');
+  
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: pass,
+    });
+    
+    if (error) throw error;
+    
+    state.currentUser = email;
+    const userData = data.user.user_metadata || {};
+    state.keywords = userData.keywords || [];
+    state.bookmarks = userData.bookmarks || [];
+    state.activeSources = new Set(userData.activeSources && userData.activeSources.length ? userData.activeSources : SOURCES.map(s=>s.id));
+    state.soundEnabled = userData.soundEnabled || false;
+    state.notifEnabled = userData.notifEnabled || false;
+    
+    renderKeywords();
+    renderSources();
+    renderBookmarks();
+    document.getElementById('toggleSound').classList.toggle('on', state.soundEnabled);
+    document.getElementById('toggleNotif').classList.toggle('on', state.notifEnabled);
+    applyFilters();
+    
+    updateAuthUI();
+    showToast({source:{name:'PULSE', color:'#ff8c42'}, title:'Welcome back!', description:'Your saved alerts and bookmarks have been loaded from the cloud.'}, ['Synced']);
+  } catch(e) {
+    alert(e.message);
+  }
+}
+
+async function handleLogOut(){
+  if (supabase) await supabase.auth.signOut();
+  state.currentUser = null;
+  
+  const guestData = JSON.parse(localStorage.getItem('pulse_guest_data') || 'null');
+  if (guestData) {
+    state.keywords = guestData.keywords || [];
+    state.bookmarks = guestData.bookmarks || [];
+    state.activeSources = new Set(guestData.activeSources && guestData.activeSources.length ? guestData.activeSources : SOURCES.map(s=>s.id));
+    state.soundEnabled = guestData.soundEnabled || false;
+    state.notifEnabled = guestData.notifEnabled || false;
   } else {
     state.keywords = [];
     state.bookmarks = [];
@@ -643,60 +738,6 @@ function loadUserData(email){
     state.soundEnabled = false;
     state.notifEnabled = false;
   }
-  state.alertsTriggered = parseInt(localStorage.getItem('pulse_alerts_count') || '0');
-  state.seenArticleIds = new Set(JSON.parse(localStorage.getItem('pulse_seen') || '[]'));
-}
-
-function handleSignUp(){
-  const email = document.getElementById('authEmail').value.trim().toLowerCase();
-  const pass = document.getElementById('authPass').value;
-  if(!email || !pass) return alert('Please enter email and password');
-  if(!email.includes('@')) return alert('Please enter a valid email');
-  
-  const users = getUsers();
-  if(users[email]) return alert('Account already exists. Please log in.');
-  
-  users[email] = { password: pass, data: {} };
-  saveUsers(users);
-  setSession(email);
-  state.currentUser = email;
-  saveUserData();
-  updateAuthUI();
-  showToast({source:{name:'PULSE', color:'#ff8c42'}, title:'Account created successfully!', description:'Your alerts and preferences are now saved.'}, ['Welcome']);
-}
-
-function handleLogIn(){
-  const email = document.getElementById('authEmail').value.trim().toLowerCase();
-  const pass = document.getElementById('authPass').value;
-  if(!email || !pass) return alert('Please enter email and password');
-  
-  const users = getUsers();
-  if(!users[email]) return alert('No account found with this email. Please sign up.');
-  if(users[email].password !== pass) return alert('Incorrect password.');
-  
-  setSession(email);
-  state.currentUser = email;
-  loadUserData(email);
-  
-  renderKeywords();
-  renderSources();
-  renderBookmarks();
-  document.getElementById('toggleSound').classList.toggle('on', state.soundEnabled);
-  document.getElementById('toggleNotif').classList.toggle('on', state.notifEnabled);
-  applyFilters();
-  
-  updateAuthUI();
-  showToast({source:{name:'PULSE', color:'#ff8c42'}, title:'Welcome back!', description:'Your saved alerts and bookmarks have been loaded.'}, ['Synced']);
-}
-
-function handleLogOut(){
-  clearSession();
-  state.currentUser = null;
-  state.keywords = [];
-  state.bookmarks = [];
-  state.activeSources = new Set(SOURCES.map(s=>s.id));
-  state.soundEnabled = false;
-  state.notifEnabled = false;
   
   renderKeywords();
   renderSources();
@@ -718,11 +759,13 @@ function updateAuthUI(){
     loggedIn.classList.remove('hidden');
     document.getElementById('accountEmail').textContent = state.currentUser;
     document.getElementById('accountAvatar').textContent = state.currentUser.charAt(0).toUpperCase();
-    btn.querySelector('i').className = 'fa-solid fa-user-check text-[var(--accent)]';
+    btn.querySelector('i').className = 'fa-solid fa-cloud text-[var(--accent)]';
+    document.getElementById('accountHelpText').textContent = 'Your alerts and bookmarks are synced to the cloud automatically.';
   } else {
     loggedOut.classList.remove('hidden');
     loggedIn.classList.add('hidden');
     btn.querySelector('i').className = 'fa-regular fa-user';
+    document.getElementById('accountHelpText').textContent = 'Create a global account to sync your keyword alerts, bookmarks, and source preferences across all devices.';
   }
 }
 
@@ -744,7 +787,6 @@ async function fetchAllFeeds(){
     let fetchedArticles = data.articles || [];
     let sourcesOk = data.successCount || 0;
     
-    // Automatic Retry for Vercel Cold Starts
     if (fetchedArticles.length === 0) {
       console.log('No articles received, retrying in 1.5s...');
       await new Promise(r => setTimeout(r, 1500));
@@ -782,7 +824,6 @@ async function fetchAllFeeds(){
     state.loading = false;
     applyFilters();
     
-    // Isolate UI updates so they can't accidentally trigger the catch block
     try {
       document.getElementById('statArticles').textContent = state.articles.length;
       document.getElementById('statSources').textContent = sourcesOk;
@@ -796,7 +837,6 @@ async function fetchAllFeeds(){
   } catch (error) {
     console.error('Fetch error:', error);
     state.loading = false;
-    // Only show the error if we truly have no articles to display
     if (state.articles.length === 0) {
       document.getElementById('loadingState').classList.add('hidden');
       document.getElementById('emptyState').classList.remove('hidden');
@@ -1316,16 +1356,50 @@ function updateClock(){
 // ============================================================
 // Init
 // ============================================================
-function init(){
-  const session = getSession();
-  if(session){
-    state.currentUser = session;
-    loadUserData(session);
+async function init(){
+  if (supabase) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      state.currentUser = session.user.email;
+      const userData = session.user.user_metadata || {};
+      state.keywords = userData.keywords || [];
+      state.bookmarks = userData.bookmarks || [];
+      state.activeSources = new Set(userData.activeSources && userData.activeSources.length ? userData.activeSources : SOURCES.map(s=>s.id));
+      state.soundEnabled = userData.soundEnabled || false;
+      state.notifEnabled = userData.notifEnabled || false;
+    } else {
+      const guestData = JSON.parse(localStorage.getItem('pulse_guest_data') || 'null');
+      if (guestData) {
+        state.keywords = guestData.keywords || [];
+        state.bookmarks = guestData.bookmarks || [];
+        state.activeSources = new Set(guestData.activeSources && guestData.activeSources.length ? guestData.activeSources : SOURCES.map(s=>s.id));
+        state.soundEnabled = guestData.soundEnabled || false;
+        state.notifEnabled = guestData.notifEnabled || false;
+      } else {
+        state.activeSources = new Set(SOURCES.map(s=>s.id));
+      }
+    }
+    
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' && state.currentUser) {
+        handleLogOut();
+      }
+    });
   } else {
-    state.activeSources = new Set(SOURCES.map(s=>s.id));
-    state.alertsTriggered = parseInt(localStorage.getItem('pulse_alerts_count') || '0');
-    state.seenArticleIds = new Set(JSON.parse(localStorage.getItem('pulse_seen') || '[]'));
+    const guestData = JSON.parse(localStorage.getItem('pulse_guest_data') || 'null');
+    if (guestData) {
+      state.keywords = guestData.keywords || [];
+      state.bookmarks = guestData.bookmarks || [];
+      state.activeSources = new Set(guestData.activeSources && guestData.activeSources.length ? guestData.activeSources : SOURCES.map(s=>s.id));
+      state.soundEnabled = guestData.soundEnabled || false;
+      state.notifEnabled = guestData.notifEnabled || false;
+    } else {
+      state.activeSources = new Set(SOURCES.map(s=>s.id));
+    }
   }
+  
+  state.alertsTriggered = parseInt(localStorage.getItem('pulse_alerts_count') || '0');
+  state.seenArticleIds = new Set(JSON.parse(localStorage.getItem('pulse_seen') || '[]'));
   
   renderCategories();
   renderSources();
