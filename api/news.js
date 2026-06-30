@@ -25,8 +25,8 @@ const SOURCES = [
   { id:'cnbc', name:'CNBC', url:'https://www.cnbc.com/id/100003114/device/rss/rss.html', homepage:'https://www.cnbc.com', category:'Business', color:'#005594' },
 ];
 
-exports.handler = async (event, context) => {
-  const requestedSources = event.queryStringParameters.sources;
+export default async function handler(req, res) {
+  const requestedSources = req.query.sources;
   let activeSources = SOURCES;
 
   if (requestedSources) {
@@ -80,12 +80,9 @@ exports.handler = async (event, context) => {
     }
   });
 
-  return {
-    statusCode: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Cache-Control': 'public, max-age=300'
-    },
-    body: JSON.stringify({ articles, successCount })
-  };
-};
+  res.setHeader('Cache-Control', 'public, max-age=300');
+
+return res.status(200).json({
+  articles,
+  successCount
+});
