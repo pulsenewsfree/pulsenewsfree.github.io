@@ -425,15 +425,20 @@
 // PULSE — Live News Aggregator & Markets
 // ============================================================
 
-// --- SUPABASE CONFIG (Configured with provided keys) ---
+// --- SUPABASE CONFIG ---
 const SUPABASE_URL = 'https://ezoqxuxtzuuyufbvfayr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6b3F4dXh0enV1eXVmYnZmYXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MjA3MTEsImV4cCI6MjA5ODM5NjcxMX0.7zgUMD5Mf9Y_l8HUjrzQxfZ49I22j8_2S3P2UmQZnIg';
-let supabase;
+let supabase = null;
 
-if (SUPABASE_URL && SUPABASE_KEY) {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-} else {
-  console.warn("Supabase keys not set. Global login will not work.");
+// Safely initialize Supabase so it never crashes the app if the CDN fails
+try {
+  if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  } else {
+    console.warn("Supabase library not loaded. Global login disabled.");
+  }
+} catch(e) {
+  console.error("Supabase initialization failed:", e);
 }
 
 const SOURCES = [
@@ -1358,33 +1363,38 @@ function updateClock(){
 // ============================================================
 async function init(){
   if (supabase) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      state.currentUser = session.user.email;
-      const userData = session.user.user_metadata || {};
-      state.keywords = userData.keywords || [];
-      state.bookmarks = userData.bookmarks || [];
-      state.activeSources = new Set(userData.activeSources && userData.activeSources.length ? userData.activeSources : SOURCES.map(s=>s.id));
-      state.soundEnabled = userData.soundEnabled || false;
-      state.notifEnabled = userData.notifEnabled || false;
-    } else {
-      const guestData = JSON.parse(localStorage.getItem('pulse_guest_data') || 'null');
-      if (guestData) {
-        state.keywords = guestData.keywords || [];
-        state.bookmarks = guestData.bookmarks || [];
-        state.activeSources = new Set(guestData.activeSources && guestData.activeSources.length ? guestData.activeSources : SOURCES.map(s=>s.id));
-        state.soundEnabled = guestData.soundEnabled || false;
-        state.notifEnabled = guestData.notifEnabled || false;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        state.currentUser = session.user.email;
+        const userData = session.user.user_metadata || {};
+        state.keywords = userData.keywords || [];
+        state.bookmarks = userData.bookmarks || [];
+        state.activeSources = new Set(userData.activeSources && userData.activeSources.length ? userData.activeSources : SOURCES.map(s=>s.id));
+        state.soundEnabled = userData.soundEnabled || false;
+        state.notifEnabled = userData.notifEnabled || false;
       } else {
-        state.activeSources = new Set(SOURCES.map(s=>s.id));
+        const guestData = JSON.parse(localStorage.getItem('pulse_guest_data') || 'null');
+        if (guestData) {
+          state.keywords = guestData.keywords || [];
+          state.bookmarks = guestData.bookmarks || [];
+          state.activeSources = new Set(guestData.activeSources && guestData.activeSources.length ? guestData.activeSources : SOURCES.map(s=>s.id));
+          state.soundEnabled = guestData.soundEnabled || false;
+          state.notifEnabled = guestData.notifEnabled || false;
+        } else {
+          state.activeSources = new Set(SOURCES.map(s=>s.id));
+        }
       }
+      
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT' && state.currentUser) {
+          handleLogOut();
+        }
+      });
+    } catch(e) {
+      console.error("Supabase auth check failed:", e);
+      state.activeSources = new Set(SOURCES.map(s=>s.id));
     }
-    
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' && state.currentUser) {
-        handleLogOut();
-      }
-    });
   } else {
     const guestData = JSON.parse(localStorage.getItem('pulse_guest_data') || 'null');
     if (guestData) {
