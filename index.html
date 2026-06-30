@@ -30,8 +30,6 @@
 <meta property="twitter:image" content="https://picsum.photos/seed/pulse-news/1200/630">
 
 <script src="https://cdn.tailwindcss.com"></script>
-<!-- Add Supabase for Global Auth -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -430,15 +428,19 @@ const SUPABASE_URL = 'https://ezoqxuxtzuuyufbvfayr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6b3F4dXh0enV1eXVmYnZmYXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MjA3MTEsImV4cCI6MjA5ODM5NjcxMX0.7zgUMD5Mf9Y_l8HUjrzQxfZ49I22j8_2S3P2UmQZnIg';
 let supabase = null;
 
-// Safely initialize Supabase so it never crashes the app if the CDN fails
-try {
-  if (window.supabase) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  } else {
-    console.warn("Supabase library not loaded. Global login disabled.");
-  }
-} catch(e) {
-  console.error("Supabase initialization failed:", e);
+// Dynamically load Supabase to prevent UI blocking
+function loadSupabase() {
+  return new Promise((resolve) => {
+    if (window.supabase) return resolve(true);
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    script.onload = () => resolve(true);
+    script.onerror = () => {
+      console.warn("Supabase CDN blocked. Global login disabled.");
+      resolve(false);
+    };
+    document.head.appendChild(script);
+  });
 }
 
 const SOURCES = [
@@ -654,7 +656,7 @@ function saveUserData(){
 }
 
 async function handleSignUp(){
-  if (!supabase) return alert("Supabase is not configured. Please check the setup instructions.");
+  if (!supabase) return alert("Cloud sync is still loading, please wait a moment and try again.");
   const email = document.getElementById('authEmail').value.trim().toLowerCase();
   const pass = document.getElementById('authPass').value;
   if(!email || !pass) return alert('Please enter email and password');
@@ -690,7 +692,7 @@ async function handleSignUp(){
 }
 
 async function handleLogIn(){
-  if (!supabase) return alert("Supabase is not configured. Please check the setup instructions.");
+  if (!supabase) return alert("Cloud sync is still loading, please wait a moment and try again.");
   const email = document.getElementById('authEmail').value.trim().toLowerCase();
   const pass = document.getElementById('authPass').value;
   if(!email || !pass) return alert('Please enter email and password');
@@ -1362,50 +1364,16 @@ function updateClock(){
 // Init
 // ============================================================
 async function init(){
-  if (supabase) {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        state.currentUser = session.user.email;
-        const userData = session.user.user_metadata || {};
-        state.keywords = userData.keywords || [];
-        state.bookmarks = userData.bookmarks || [];
-        state.activeSources = new Set(userData.activeSources && userData.activeSources.length ? userData.activeSources : SOURCES.map(s=>s.id));
-        state.soundEnabled = userData.soundEnabled || false;
-        state.notifEnabled = userData.notifEnabled || false;
-      } else {
-        const guestData = JSON.parse(localStorage.getItem('pulse_guest_data') || 'null');
-        if (guestData) {
-          state.keywords = guestData.keywords || [];
-          state.bookmarks = guestData.bookmarks || [];
-          state.activeSources = new Set(guestData.activeSources && guestData.activeSources.length ? guestData.activeSources : SOURCES.map(s=>s.id));
-          state.soundEnabled = guestData.soundEnabled || false;
-          state.notifEnabled = guestData.notifEnabled || false;
-        } else {
-          state.activeSources = new Set(SOURCES.map(s=>s.id));
-        }
-      }
-      
-      supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT' && state.currentUser) {
-          handleLogOut();
-        }
-      });
-    } catch(e) {
-      console.error("Supabase auth check failed:", e);
-      state.activeSources = new Set(SOURCES.map(s=>s.id));
-    }
+  // 1. Load Guest Data immediately so UI is populated
+  const guestData = JSON.parse(localStorage.getItem('pulse_guest_data') || 'null');
+  if (guestData) {
+    state.keywords = guestData.keywords || [];
+    state.bookmarks = guestData.bookmarks || [];
+    state.activeSources = new Set(guestData.activeSources && guestData.activeSources.length ? guestData.activeSources : SOURCES.map(s=>s.id));
+    state.soundEnabled = guestData.soundEnabled || false;
+    state.notifEnabled = guestData.notifEnabled || false;
   } else {
-    const guestData = JSON.parse(localStorage.getItem('pulse_guest_data') || 'null');
-    if (guestData) {
-      state.keywords = guestData.keywords || [];
-      state.bookmarks = guestData.bookmarks || [];
-      state.activeSources = new Set(guestData.activeSources && guestData.activeSources.length ? guestData.activeSources : SOURCES.map(s=>s.id));
-      state.soundEnabled = guestData.soundEnabled || false;
-      state.notifEnabled = guestData.notifEnabled || false;
-    } else {
-      state.activeSources = new Set(SOURCES.map(s=>s.id));
-    }
+    state.activeSources = new Set(SOURCES.map(s=>s.id));
   }
   
   state.alertsTriggered = parseInt(localStorage.getItem('pulse_alerts_count') || '0');
@@ -1418,7 +1386,6 @@ async function init(){
   updateAuthUI();
   
   document.getElementById('statSourcesTotal').textContent = SOURCES.length;
-  
   document.getElementById('toggleSound').classList.toggle('on', state.soundEnabled);
   document.getElementById('toggleNotif').classList.toggle('on', state.notifEnabled);
   
@@ -1469,15 +1436,9 @@ async function init(){
     }
   });
   
-  document.getElementById('settingsBtn').addEventListener('click', () => {
-    document.body.classList.add('drawer-open');
-  });
-  document.getElementById('closeDrawerBtn').addEventListener('click', () => {
-    document.body.classList.remove('drawer-open');
-  });
-  document.getElementById('backdrop').addEventListener('click', () => {
-    document.body.classList.remove('drawer-open');
-  });
+  document.getElementById('settingsBtn').addEventListener('click', () => document.body.classList.add('drawer-open'));
+  document.getElementById('closeDrawerBtn').addEventListener('click', () => document.body.classList.remove('drawer-open'));
+  document.getElementById('backdrop').addEventListener('click', () => document.body.classList.remove('drawer-open'));
   
   document.getElementById('toggleMajorBtn').addEventListener('click', (e) => {
     state.showMajorOnly = !state.showMajorOnly;
@@ -1505,9 +1466,7 @@ async function init(){
     }
   });
   
-  document.querySelectorAll('.kw-suggest').forEach(btn => {
-    btn.addEventListener('click', () => addKeyword(btn.textContent));
-  });
+  document.querySelectorAll('.kw-suggest').forEach(btn => btn.addEventListener('click', () => addKeyword(btn.textContent)));
   
   document.getElementById('toggleSound').addEventListener('click', () => {
     state.soundEnabled = !state.soundEnabled;
@@ -1603,6 +1562,40 @@ async function init(){
   
   fetchAllFeeds();
   setInterval(fetchAllFeeds, 5 * 60 * 1000);
+  
+  // 2. Load Supabase in the background without blocking the UI
+  const sbLoaded = await loadSupabase();
+  if (sbLoaded && window.supabase) {
+    try {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        state.currentUser = session.user.email;
+        const userData = session.user.user_metadata || {};
+        state.keywords = userData.keywords || [];
+        state.bookmarks = userData.bookmarks || [];
+        state.activeSources = new Set(userData.activeSources && userData.activeSources.length ? userData.activeSources : SOURCES.map(s=>s.id));
+        state.soundEnabled = userData.soundEnabled || false;
+        state.notifEnabled = userData.notifEnabled || false;
+        
+        renderKeywords();
+        renderSources();
+        renderBookmarks();
+        document.getElementById('toggleSound').classList.toggle('on', state.soundEnabled);
+        document.getElementById('toggleNotif').classList.toggle('on', state.notifEnabled);
+        applyFilters();
+        updateAuthUI();
+      }
+      
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT' && state.currentUser) {
+          handleLogOut();
+        }
+      });
+    } catch(e) {
+      console.error("Supabase auth check failed:", e);
+    }
+  }
 }
 
 window.toggleBookmarkByIndex = toggleBookmarkByIndex;
