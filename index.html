@@ -144,6 +144,17 @@
   
   /* Market Sparkline */
   .sparkline path { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  
+  .tab-btn {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    padding-bottom: 8px;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--fg); }
+  .tab-btn.active { color: var(--accent); border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -407,19 +418,6 @@
   </div>
 </footer>
 
-<style>
-  .tab-btn {
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--muted);
-    border-bottom: 2px solid transparent;
-    padding-bottom: 8px;
-    transition: all 0.2s;
-  }
-  .tab-btn:hover { color: var(--fg); }
-  .tab-btn.active { color: var(--accent); border-color: var(--accent); }
-</style>
-
 <script>
 // ============================================================
 // PULSE — Live News Aggregator & Markets
@@ -548,6 +546,8 @@ function generateAISummary(article) {
 
 function calculateMajorScore(article) {
   let score = 0;
+  if (!article) return score;
+  
   const title = (article.title || '').toLowerCase();
   const desc = (article.description || '').toLowerCase();
   
@@ -565,8 +565,10 @@ function calculateMajorScore(article) {
   if (desc.length > 150) score += 20;
   
   // Premium sources
-  const topSources = ['bbc', 'nyt', 'guardian', 'aljazeera', 'cnbc', 'economist'];
-  if (topSources.includes(article.source.id)) score += 15;
+  if (article.source) {
+    const topSources = ['bbc', 'nyt', 'guardian', 'aljazeera', 'cnbc', 'economist'];
+    if (topSources.includes(article.source.id)) score += 15;
+  }
   
   // Add slight randomness to break ties
   score += Math.random() * 10;
@@ -732,7 +734,7 @@ function updateAuthUI(){
 }
 
 // ============================================================
-// Feed Fetching (Vercel Serverless API Route)
+// Feed Fetching (Vercel Serverless API Route with Retry)
 // ============================================================
 async function fetchAllFeeds(){
   state.loading = true;
@@ -742,12 +744,23 @@ async function fetchAllFeeds(){
   const sourceIds = enabled.map(s => s.id).join(',');
   
   try {
-    const res = await fetch(`/api/news?sources=${sourceIds}`);
+    let res = await fetch(`/api/news?sources=${sourceIds}`);
     if (!res.ok) throw new Error('Network response was not ok');
     
-    const data = await res.json();
-    const fetchedArticles = data.articles || [];
-    const sourcesOk = data.successCount || 0;
+    let data = await res.json();
+    let fetchedArticles = data.articles || [];
+    let sourcesOk = data.successCount || 0;
+    
+    // Automatic Retry for Vercel Cold Starts
+    if (fetchedArticles.length === 0) {
+      console.log('No articles received, retrying in 1.5s...');
+      await new Promise(r => setTimeout(r, 1500));
+      res = await fetch(`/api/news?sources=${sourceIds}`);
+      if (!res.ok) throw new Error('Network response was not ok on retry');
+      data = await res.json();
+      fetchedArticles = data.articles || [];
+      sourcesOk = data.successCount || 0;
+    }
     
     if (fetchedArticles.length === 0 && state.articles.length === 0) {
       state.loading = false;
@@ -983,7 +996,7 @@ function applyFilters(){
   
   if (state.showMajorOnly) {
     filtered.forEach(a => a._majorScore = calculateMajorScore(a));
-    filtered.sort((a, b) => b._majorScore - a._majorScore);
+    filtered.sort((a, b) => (b._majorScore || 0) - (a._majorScore || 0));
   } else {
     filtered.sort((a, b) => {
       if(state.sort === 'newest') return new Date(b.pubDate || 0) - new Date(a.pubDate || 0);
