@@ -8,44 +8,26 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ff8c42'/%3E%3Cstop offset='100%25' stop-color='%23ff3b3b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='20' fill='%230a0807'/%3E%3Cpath d='M55 10 L20 60 L45 60 L40 90 L80 40 L55 40 Z' fill='url(%23g)'/%3E%3C/svg%3E">
 
 <!-- Primary Meta Tags -->
-<title>PULSE — Live Global News Wire & Keyword Alerts</title>
-<meta name="title" content="PULSE — Live Global News Wire & Keyword Alerts">
-<meta name="description" content="PULSE aggregates live news from 16+ major global sources including BBC, NYT, Guardian, and TechCrunch. Set custom keyword alerts to get instant notifications on breaking news.">
-<meta name="keywords" content="news aggregator, live news, breaking news, RSS feeds, keyword alerts, BBC, NYT, TechCrunch, global news, real-time news">
+<title>PULSE — Live Global News Wire & Markets</title>
+<meta name="title" content="PULSE — Live Global News Wire & Markets">
+<meta name="description" content="PULSE aggregates live news from 20+ major global sources. Set custom keyword alerts and track live market data.">
+<meta name="keywords" content="news aggregator, live news, breaking news, RSS feeds, keyword alerts, stock market, markets, BBC, NYT, TechCrunch">
 <meta name="author" content="PULSE News Wire">
 <meta name="robots" content="index, follow">
 
 <!-- Open Graph / Facebook -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://pulse-newswire.example.com/">
-<meta property="og:title" content="PULSE — Live Global News Wire">
-<meta property="og:description" content="Aggregate live news from 16+ major global sources. Set custom keyword alerts to get instant notifications on breaking news.">
+<meta property="og:title" content="PULSE — Live Global News Wire & Markets">
+<meta property="og:description" content="Aggregate live news from 20+ major global sources. Set custom keyword alerts and track live market data.">
 <meta property="og:image" content="https://picsum.photos/seed/pulse-news/1200/630">
 
 <!-- Twitter -->
 <meta property="twitter:card" content="summary_large_image">
 <meta property="twitter:url" content="https://pulse-newswire.example.com/">
-<meta property="twitter:title" content="PULSE — Live Global News Wire">
-<meta property="twitter:description" content="Aggregate live news from 16+ major global sources. Set custom keyword alerts to get instant notifications on breaking news.">
+<meta property="twitter:title" content="PULSE — Live Global News Wire & Markets">
+<meta property="twitter:description" content="Aggregate live news from 20+ major global sources. Set custom keyword alerts and track live market data.">
 <meta property="twitter:image" content="https://picsum.photos/seed/pulse-news/1200/630">
-
-<!-- Structured Data for SEO -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "WebApplication",
-  "name": "PULSE Global News Wire",
-  "url": "https://pulse-newswire.example.com",
-  "description": "A real-time news aggregator connecting major global newsfeeds with custom keyword alert notifications.",
-  "applicationCategory": "NewsApplication",
-  "operatingSystem": "Any",
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
-  }
-}
-</script>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -67,6 +49,8 @@
     --accent-2: #ffb872;
     --alert: #ff3b3b;
     --live: #4ade80;
+    --bear: #ef4444;
+    --bull: #22c55e;
   }
   *{box-sizing:border-box}
   html,body{background:var(--bg);color:var(--fg);font-family:'Plus Jakarta Sans',system-ui,sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
@@ -89,15 +73,12 @@
   ::-webkit-scrollbar-thumb:hover{background:var(--muted-2)}
   ::selection{background:var(--accent);color:#1a0e05}
   
-  /* Fluid Typography Scaling */
   .hero-title{font-size:clamp(1.75rem, 4vw, 2.5rem)}
   
-  /* Sidebar Collapse Logic */
-  body.sidebar-collapsed #expandBtn { display: inline-flex !important; }
-  body.sidebar-collapsed aside { display: none !important; }
-  @media (min-width: 1024px) {
-    body.sidebar-collapsed #mainGrid { grid-template-columns: 1fr !important; }
-  }
+  /* Drawer Logic */
+  #sidebar { transition: transform 0.3s cubic-bezier(.16,1,.3,1); transform: translateX(-100%); }
+  body.drawer-open #sidebar { transform: translateX(0); }
+  body.drawer-open #backdrop { opacity: 1; pointer-events: auto; }
   
   @keyframes pulse-live{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
   .pulse-dot{animation:pulse-live 1.5s ease-in-out infinite}
@@ -155,22 +136,128 @@
   .gradient-placeholder::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,var(--src-color,var(--accent)) 0%,transparent 65%);opacity:.25}
   .gradient-placeholder::after{content:attr(data-source);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:clamp(2rem, 5vw, 3.5rem);font-weight:900;color:rgba(255,255,255,.07);letter-spacing:-.04em;text-transform:uppercase;padding:0 12px;text-align:center;line-height:.9}
   
-  .sidebar-sticky{position:sticky;top:140px}
-  @media (max-width:1023px){.sidebar-sticky{position:static}}
-  
   [data-tooltip]{position:relative}
   [data-tooltip]:hover::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--bg);border:1px solid var(--border-2);padding:4px 8px;border-radius:4px;font-size:11px;white-space:nowrap;pointer-events:none;z-index:100}
   
   .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .line-clamp-3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  
+  /* Market Sparkline */
+  .sparkline path { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 </style>
 </head>
 <body>
 
-<!-- Floating Expand Button (Hidden by default) -->
-<button id="expandBtn" class="hidden fixed top-32 left-4 z-40 btn btn-ghost" style="display:none;">
-  <i class="fa-solid fa-bars"></i> Settings
-</button>
+<!-- Drawer Backdrop -->
+<div id="backdrop" class="fixed inset-0 bg-black/60 z-40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+<!-- Settings Sidebar (Drawer) -->
+<aside id="sidebar" class="fixed top-0 left-0 h-full w-[340px] bg-[var(--bg-2)] border-r border-[var(--border)] z-50 overflow-y-auto p-5 shadow-2xl">
+  <div class="flex items-center justify-between mb-6">
+    <h3 class="serif text-xl font-bold">Settings & Alerts</h3>
+    <button id="closeDrawerBtn" class="btn btn-ghost btn-icon"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  
+  <div class="space-y-5">
+    <!-- Account Box -->
+    <div id="accountBox" class="card p-5" style="cursor:default">
+      <div id="accountLoggedOut">
+        <div class="flex items-center gap-2 mb-3">
+          <i class="fa-solid fa-user-shield text-[var(--accent)]"></i>
+          <h3 class="serif text-lg font-bold">Save Your Alerts</h3>
+        </div>
+        <p class="text-xs text-[var(--muted)] mb-4 leading-relaxed">Create a local account to save your keyword alerts, bookmarks, and source preferences across sessions.</p>
+        <div class="space-y-2">
+          <input id="authEmail" type="email" placeholder="Email address" class="input text-xs">
+          <input id="authPass" type="password" placeholder="Password" class="input text-xs">
+        </div>
+        <div class="flex gap-2 mt-3">
+          <button id="signUpBtn" class="btn btn-primary text-xs flex-1 justify-center">Sign Up</button>
+          <button id="logInBtn" class="btn btn-ghost text-xs flex-1 justify-center">Log In</button>
+        </div>
+      </div>
+      <div id="accountLoggedIn" class="hidden">
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--alert)] flex items-center justify-center text-[#1a0e05] font-black text-lg" id="accountAvatar">U</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs text-[var(--muted)] uppercase tracking-wider font-bold">Signed in as</p>
+            <p class="text-sm font-semibold truncate" id="accountEmail">user@example.com</p>
+          </div>
+        </div>
+        <p class="text-xs text-[var(--muted)] mb-4 leading-relaxed">Your alerts and bookmarks are being saved automatically.</p>
+        <button id="logOutBtn" class="btn btn-ghost text-xs w-full justify-center">
+          <i class="fa-solid fa-right-from-bracket"></i> Log Out
+        </button>
+      </div>
+    </div>
+    
+    <!-- Keyword Alerts -->
+    <div class="card p-5" style="cursor:default">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <i class="fa-solid fa-bell text-[var(--alert)]"></i>
+            <span class="absolute -top-1 -right-1 w-2 h-2 bg-[var(--alert)] rounded-full pulse-dot"></span>
+          </div>
+          <h3 class="serif text-lg font-bold">Keyword Alerts</h3>
+        </div>
+        <span class="text-[10px] text-[var(--muted)] tracking-[.15em] uppercase font-bold">Live</span>
+      </div>
+      
+      <div class="flex gap-2 mb-2">
+        <input id="kwInput" type="text" placeholder="e.g. AI, climate, Tesla..." class="input text-xs">
+        <button id="kwAdd" class="btn btn-primary text-xs px-3">Add</button>
+      </div>
+      
+      <div class="text-[10px] text-[var(--muted-2)] mb-3">
+        Try:
+        <button class="kw-suggest text-[var(--accent)] hover:text-[var(--accent-2)] underline-offset-2 hover:underline font-semibold">AI</button>,
+        <button class="kw-suggest text-[var(--accent)] hover:text-[var(--accent-2)] underline-offset-2 hover:underline font-semibold">climate</button>,
+        <button class="kw-suggest text-[var(--accent)] hover:text-[var(--accent-2)] underline-offset-2 hover:underline font-semibold">Tesla</button>,
+        <button class="kw-suggest text-[var(--accent)] hover:text-[var(--accent-2)] underline-offset-2 hover:underline font-semibold">election</button>
+      </div>
+      
+      <div id="kwList" class="space-y-2 mb-4 max-h-64 overflow-y-auto pr-1"></div>
+      
+      <div class="space-y-2.5 pt-3 border-t border-[var(--border)]">
+        <label class="flex items-center justify-between text-xs cursor-pointer">
+          <span class="text-[var(--muted)] flex items-center gap-2"><i class="fa-solid fa-volume-high w-4"></i>Sound alert</span>
+          <div class="toggle" id="toggleSound"></div>
+        </label>
+        <label class="flex items-center justify-between text-xs cursor-pointer">
+          <span class="text-[var(--muted)] flex items-center gap-2"><i class="fa-solid fa-desktop w-4"></i>Browser notifications</span>
+          <div class="toggle" id="toggleNotif"></div>
+        </label>
+      </div>
+    </div>
+    
+    <!-- Categories -->
+    <div class="card p-5" style="cursor:default">
+      <h3 class="section-label mb-3">Categories</h3>
+      <div id="catList" class="flex flex-wrap gap-2"></div>
+    </div>
+    
+    <!-- Sources -->
+    <div class="card p-5" style="cursor:default">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="section-label">Sources</h3>
+        <button id="srcToggleAll" class="text-[10px] text-[var(--accent)] hover:text-[var(--accent-2)] font-bold uppercase tracking-wider">Toggle all</button>
+      </div>
+      <div id="srcList" class="space-y-1 max-h-72 overflow-y-auto pr-2"></div>
+    </div>
+    
+    <!-- Reading List -->
+    <div class="card p-5" style="cursor:default">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="section-label">Reading List</h3>
+        <span class="text-[10px] text-[var(--muted)] mono bg-[var(--bg-2)] px-1.5 py-0.5 rounded"><span id="bookmarkCount">0</span></span>
+      </div>
+      <div id="bookmarkList" class="space-y-2 max-h-56 overflow-y-auto pr-2">
+        <p class="text-xs text-[var(--muted-2)] italic">No saved articles yet. Click the bookmark icon on any article to save it.</p>
+      </div>
+    </div>
+  </div>
+</aside>
 
 <!-- Top ticker -->
 <div class="border-b border-[var(--border)] bg-[var(--bg-2)] overflow-hidden relative z-10">
@@ -191,7 +278,7 @@
       </div>
       <div>
         <h1 class="serif text-xl md:text-2xl font-black tracking-tight leading-none">PULSE</h1>
-        <p class="text-[10px] text-[var(--muted)] tracking-[.2em] uppercase mt-1 hidden sm:block">Global News Wire</p>
+        <p class="text-[10px] text-[var(--muted)] tracking-[.2em] uppercase mt-1 hidden sm:block">Global News Wire & Markets</p>
       </div>
     </div>
     
@@ -214,11 +301,18 @@
       <button id="accountBtn" class="btn btn-ghost btn-icon" data-tooltip="Account">
         <i class="fa-regular fa-user"></i>
       </button>
+      <button id="settingsBtn" class="btn btn-ghost btn-icon" data-tooltip="Settings & Alerts">
+        <i class="fa-solid fa-gear"></i>
+      </button>
     </div>
   </div>
   
-  <div class="max-w-[1600px] mx-auto px-4 md:px-6 pb-3 flex items-center gap-4 md:gap-6 text-xs flex-wrap">
-    <div class="flex items-center gap-2">
+  <!-- Main Tabs -->
+  <div class="max-w-[1600px] mx-auto px-4 md:px-6 pb-3 flex items-center gap-6 text-xs flex-wrap border-t border-[var(--border)] pt-3 mt-2">
+    <button class="tab-btn active" data-tab="news"><i class="fa-solid fa-newspaper mr-2"></i>News Wire</button>
+    <button class="tab-btn" data-tab="markets"><i class="fa-solid fa-chart-line mr-2"></i>Markets</button>
+    
+    <div class="flex items-center gap-2 ml-auto">
       <div class="w-2 h-2 bg-[var(--live)] rounded-full pulse-dot"></div>
       <span class="text-[var(--muted)] font-semibold tracking-wider">LIVE</span>
       <span class="mono font-semibold text-[var(--fg)]"><span id="statArticles">0</span></span>
@@ -226,160 +320,74 @@
       <span class="mono font-semibold text-[var(--fg)]"><span id="statSources">0</span>/<span id="statSourcesTotal">0</span></span>
       <span class="text-[var(--muted-2)] hidden sm:inline">sources</span>
     </div>
-    <div class="flex items-center gap-2">
-      <i class="fa-solid fa-bell text-[var(--alert)] text-[10px]"></i>
-      <span class="text-[var(--muted)] hidden sm:inline">Alerts:</span>
-      <span class="mono font-semibold text-[var(--alert)]" id="statAlerts">0</span>
-    </div>
-    <div class="flex items-center gap-2 ml-auto">
-      <span class="text-[var(--muted)] hidden md:inline">Updated</span>
-      <span class="mono text-[var(--fg)]" id="lastUpdate">—</span>
-    </div>
   </div>
 </header>
 
 <!-- Main -->
 <main class="max-w-[1600px] mx-auto px-4 md:px-6 py-6 relative z-10">
-  <div id="mainGrid" class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6">
-    
-    <!-- Sidebar -->
-    <aside>
-      <div class="sidebar-sticky space-y-5">
-        
-        <!-- Account Box -->
-        <div id="accountBox" class="card p-5" style="cursor:default">
-          <div id="accountLoggedOut">
-            <div class="flex items-center gap-2 mb-3">
-              <i class="fa-solid fa-user-shield text-[var(--accent)]"></i>
-              <h3 class="serif text-lg font-bold">Save Your Alerts</h3>
-            </div>
-            <p class="text-xs text-[var(--muted)] mb-4 leading-relaxed">Create a local account to save your keyword alerts, bookmarks, and source preferences across sessions.</p>
-            <div class="space-y-2">
-              <input id="authEmail" type="email" placeholder="Email address" class="input text-xs">
-              <input id="authPass" type="password" placeholder="Password" class="input text-xs">
-            </div>
-            <div class="flex gap-2 mt-3">
-              <button id="signUpBtn" class="btn btn-primary text-xs flex-1 justify-center">Sign Up</button>
-              <button id="logInBtn" class="btn btn-ghost text-xs flex-1 justify-center">Log In</button>
-            </div>
-          </div>
-          <div id="accountLoggedIn" class="hidden">
-            <div class="flex items-center gap-2 mb-3">
-              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent)] to-[var(--alert)] flex items-center justify-center text-[#1a0e05] font-black text-lg" id="accountAvatar">U</div>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs text-[var(--muted)] uppercase tracking-wider font-bold">Signed in as</p>
-                <p class="text-sm font-semibold truncate" id="accountEmail">user@example.com</p>
-              </div>
-            </div>
-            <p class="text-xs text-[var(--muted)] mb-4 leading-relaxed">Your alerts and bookmarks are being saved automatically.</p>
-            <button id="logOutBtn" class="btn btn-ghost text-xs w-full justify-center">
-              <i class="fa-solid fa-right-from-bracket"></i> Log Out
-            </button>
-          </div>
-        </div>
-        
-        <!-- Keyword Alerts -->
-        <div class="card p-5" style="cursor:default">
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
-              <div class="relative">
-                <i class="fa-solid fa-bell text-[var(--alert)]"></i>
-                <span class="absolute -top-1 -right-1 w-2 h-2 bg-[var(--alert)] rounded-full pulse-dot"></span>
-              </div>
-              <h3 class="serif text-lg font-bold">Keyword Alerts</h3>
-            </div>
-            <span class="text-[10px] text-[var(--muted)] tracking-[.15em] uppercase font-bold">Live</span>
-          </div>
-          
-          <div class="flex gap-2 mb-2">
-            <input id="kwInput" type="text" placeholder="e.g. AI, climate, Tesla..." class="input text-xs">
-            <button id="kwAdd" class="btn btn-primary text-xs px-3">Add</button>
-          </div>
-          
-          <div class="text-[10px] text-[var(--muted-2)] mb-3">
-            Try:
-            <button class="kw-suggest text-[var(--accent)] hover:text-[var(--accent-2)] underline-offset-2 hover:underline font-semibold">AI</button>,
-            <button class="kw-suggest text-[var(--accent)] hover:text-[var(--accent-2)] underline-offset-2 hover:underline font-semibold">climate</button>,
-            <button class="kw-suggest text-[var(--accent)] hover:text-[var(--accent-2)] underline-offset-2 hover:underline font-semibold">Tesla</button>,
-            <button class="kw-suggest text-[var(--accent)] hover:text-[var(--accent-2)] underline-offset-2 hover:underline font-semibold">election</button>
-          </div>
-          
-          <div id="kwList" class="space-y-2 mb-4 max-h-64 overflow-y-auto pr-1"></div>
-          
-          <div class="space-y-2.5 pt-3 border-t border-[var(--border)]">
-            <label class="flex items-center justify-between text-xs cursor-pointer">
-              <span class="text-[var(--muted)] flex items-center gap-2"><i class="fa-solid fa-volume-high w-4"></i>Sound alert</span>
-              <div class="toggle" id="toggleSound"></div>
-            </label>
-            <label class="flex items-center justify-between text-xs cursor-pointer">
-              <span class="text-[var(--muted)] flex items-center gap-2"><i class="fa-solid fa-desktop w-4"></i>Browser notifications</span>
-              <div class="toggle" id="toggleNotif"></div>
-            </label>
-          </div>
-        </div>
-        
-        <!-- Categories -->
-        <div class="card p-5" style="cursor:default">
-          <h3 class="section-label mb-3">Categories</h3>
-          <div id="catList" class="flex flex-wrap gap-2"></div>
-        </div>
-        
-        <!-- Sources -->
-        <div class="card p-5" style="cursor:default">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="section-label">Sources</h3>
-            <button id="srcToggleAll" class="text-[10px] text-[var(--accent)] hover:text-[var(--accent-2)] font-bold uppercase tracking-wider">Toggle all</button>
-          </div>
-          <div id="srcList" class="space-y-1 max-h-72 overflow-y-auto pr-2"></div>
-        </div>
-        
-        <!-- Reading List -->
-        <div class="card p-5" style="cursor:default">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="section-label">Reading List</h3>
-            <span class="text-[10px] text-[var(--muted)] mono bg-[var(--bg-2)] px-1.5 py-0.5 rounded"><span id="bookmarkCount">0</span></span>
-          </div>
-          <div id="bookmarkList" class="space-y-2 max-h-56 overflow-y-auto pr-2">
-            <p class="text-xs text-[var(--muted-2)] italic">No saved articles yet. Click the bookmark icon on any article to save it.</p>
-          </div>
-        </div>
-        
-        <!-- Collapse Button -->
-        <button id="collapseBtn" class="btn btn-primary w-full justify-center">
-          <i class="fa-solid fa-compress"></i> Save & Collapse Settings
-        </button>
-        
+  
+  <!-- News View -->
+  <div id="newsView">
+    <div class="flex items-end justify-between mb-5 flex-wrap gap-3">
+      <div>
+        <h2 class="serif font-black hero-title leading-none">Today's Wire</h2>
+        <p class="text-xs text-[var(--muted)] mt-2">
+          <span class="mono text-[var(--fg)]" id="resultCount">0 articles</span>
+          <span class="mx-2">·</span>
+          Aggregated live from major global newsrooms
+        </p>
       </div>
-    </aside>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button class="chip sort-chip active" data-sort="newest"><i class="fa-solid fa-clock text-[10px]"></i> Newest</button>
+        <button class="chip sort-chip" data-sort="oldest"><i class="fa-solid fa-hourglass-start text-[10px]"></i> Oldest</button>
+        <button class="chip sort-chip" data-sort="source"><i class="fa-solid fa-newspaper text-[10px]"></i> Source</button>
+      </div>
+    </div>
     
-    <!-- Content -->
-    <section>
-      <div class="flex items-end justify-between mb-5 flex-wrap gap-3">
+    <div id="majorToggleBar" class="flex items-center justify-between p-4 rounded-xl bg-[var(--surface)] border border-[var(--border-2)] mb-5">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-fire text-[var(--accent)] text-lg"></i>
         <div>
-          <h2 class="serif font-black hero-title leading-none">Today's Wire</h2>
-          <p class="text-xs text-[var(--muted)] mt-2">
-            <span class="mono text-[var(--fg)]" id="resultCount">0 articles</span>
-            <span class="mx-2">·</span>
-            Aggregated live from major global newsrooms
-          </p>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <button class="chip sort-chip active" data-sort="newest"><i class="fa-solid fa-clock text-[10px]"></i> Newest</button>
-          <button class="chip sort-chip" data-sort="oldest"><i class="fa-solid fa-hourglass-start text-[10px]"></i> Oldest</button>
-          <button class="chip sort-chip" data-sort="source"><i class="fa-solid fa-newspaper text-[10px]"></i> Source</button>
+          <p class="text-sm font-bold text-[var(--fg)]">Showing most major articles</p>
+          <p class="text-xs text-[var(--muted)]">Prioritized by source, keywords, and depth.</p>
         </div>
       </div>
-      
-      <div id="loadingState" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"></div>
-      <div id="articlesGrid" class="hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"></div>
-      
-      <div id="emptyState" class="hidden text-center py-24">
-        <i class="fa-solid fa-cloud-bolt text-6xl text-[var(--border-2)] mb-4"></i>
-        <h3 class="serif text-2xl font-bold mb-2">Live feeds unreachable</h3>
-        <p class="text-[var(--muted)] text-sm max-w-md mx-auto">Please ensure the Vercel API Route is deployed and running, then try refreshing.</p>
-      </div>
-    </section>
+      <button id="toggleMajorBtn" class="btn btn-ghost text-xs">
+        View All Articles
+      </button>
+    </div>
+    
+    <div id="loadingState" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+    <div id="articlesGrid" class="hidden grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+    
+    <div id="emptyState" class="hidden text-center py-24">
+      <i class="fa-solid fa-cloud-bolt text-6xl text-[var(--border-2)] mb-4"></i>
+      <h3 class="serif text-2xl font-bold mb-2">Live feeds unreachable</h3>
+      <p class="text-[var(--muted)] text-sm max-w-md mx-auto">Please ensure the Vercel API Route is deployed and running, then try refreshing.</p>
+    </div>
   </div>
+
+  <!-- Markets View -->
+  <div id="marketsView" class="hidden">
+    <div class="flex items-end justify-between mb-5 flex-wrap gap-3">
+      <div>
+        <h2 class="serif font-black hero-title leading-none">Live Markets</h2>
+        <p class="text-xs text-[var(--muted)] mt-2">
+          <span class="mono text-[var(--fg)]">Real-time simulation</span>
+          <span class="mx-2">·</span>
+          Tracking major indices and stocks
+        </p>
+      </div>
+    </div>
+    
+    <!-- Indices Row -->
+    <div id="indicesGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6"></div>
+    
+    <!-- Stocks Grid -->
+    <h3 class="section-label mb-3">Top Movers</h3>
+    <div id="stocksGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+  </div>
+
 </main>
 
 <!-- Toast container -->
@@ -399,9 +407,22 @@
   </div>
 </footer>
 
+<style>
+  .tab-btn {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    padding-bottom: 8px;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--fg); }
+  .tab-btn.active { color: var(--accent); border-color: var(--accent); }
+</style>
+
 <script>
 // ============================================================
-// PULSE — Live News Aggregator
+// PULSE — Live News Aggregator & Markets
 // ============================================================
 
 const SOURCES = [
@@ -445,6 +466,26 @@ const state = {
   loading: false,
   alertedIds: new Set(),
   currentUser: null,
+  showMajorOnly: true,
+  activeTab: 'news',
+  markets: {
+    indices: [
+      { symbol: 'SPX', name: 'S&P 500', price: 5230.41, prevClose: 5218.12, history: [] },
+      { symbol: 'NDX', name: 'Nasdaq 100', price: 18320.55, prevClose: 18250.30, history: [] },
+      { symbol: 'DJI', name: 'Dow Jones', price: 39120.10, prevClose: 39050.20, history: [] }
+    ],
+    stocks: [
+      { symbol: 'AAPL', name: 'Apple Inc.', price: 189.50, prevClose: 188.10, history: [] },
+      { symbol: 'MSFT', name: 'Microsoft Corp.', price: 415.20, prevClose: 412.50, history: [] },
+      { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 175.30, prevClose: 173.80, history: [] },
+      { symbol: 'AMZN', name: 'Amazon.com Inc.', price: 185.90, prevClose: 184.20, history: [] },
+      { symbol: 'TSLA', name: 'Tesla Inc.', price: 175.40, prevClose: 178.20, history: [] },
+      { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 1050.80, prevClose: 1025.60, history: [] },
+      { symbol: 'META', name: 'Meta Platforms', price: 495.60, prevClose: 490.10, history: [] },
+      { symbol: 'NFLX', name: 'Netflix Inc.', price: 620.30, prevClose: 615.40, history: [] },
+      { symbol: 'AMD', name: 'Advanced Micro Devices', price: 160.20, prevClose: 158.90, history: [] }
+    ]
+  }
 };
 
 // ============================================================
@@ -503,6 +544,34 @@ function generateAISummary(article) {
   const keywords = getMatchedKeywords(article);
   const kwStr = keywords.length ? ` Key topics include ${keywords.join(', ')}.` : '';
   return `This piece covers ${article.source.category} developments. ${summary}${kwStr}`;
+}
+
+function calculateMajorScore(article) {
+  let score = 0;
+  const title = (article.title || '').toLowerCase();
+  const desc = (article.description || '').toLowerCase();
+  
+  // Keywords that indicate major news
+  const majorWords = ['breaking', 'major', 'historic', 'crisis', 'deal', 'launch', 'dies', 'killed', 'attack', 'win', 'loses', 'election', 'warns', 'alert', 'exclusive', 'collapse'];
+  majorWords.forEach(w => {
+    if (title.includes(w)) score += 50;
+    if (desc.includes(w)) score += 10;
+  });
+  
+  // Title length (longer titles often more detailed)
+  if (title.length > 60) score += 15;
+  
+  // Description depth
+  if (desc.length > 150) score += 20;
+  
+  // Premium sources
+  const topSources = ['bbc', 'nyt', 'guardian', 'aljazeera', 'cnbc', 'economist'];
+  if (topSources.includes(article.source.id)) score += 15;
+  
+  // Add slight randomness to break ties
+  score += Math.random() * 10;
+  
+  return score;
 }
 
 function playBeep(){
@@ -687,10 +756,8 @@ async function fetchAllFeeds(){
       return;
     }
     
-    // Merge newly fetched articles with existing ones
     let combined = [...state.articles, ...fetchedArticles];
     
-    // Deduplicate
     const seen = new Set();
     combined = combined.filter(a => {
       if(!a.id || seen.has(a.id)) return false;
@@ -698,16 +765,12 @@ async function fetchAllFeeds(){
       return true;
     });
     
-    // Sort by date descending (newest first)
     combined.sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0));
-    
-    // Keep only the 250 most recent articles, dropping the oldest
     state.articles = combined.slice(0, 250);
     
     state.articleMap = {};
     state.articles.forEach((a, i) => state.articleMap[i] = a);
     
-    // Only check keyword alerts on newly fetched items to avoid spamming old ones
     checkKeywordAlerts(fetchedArticles);
     
     document.getElementById('statArticles').textContent = state.articles.length;
@@ -777,7 +840,6 @@ function persistSeen(){
 function triggerAlert(article, keywords){
   state.alertsTriggered++;
   try{ localStorage.setItem('pulse_alerts_count', state.alertsTriggered.toString()); }catch(e){}
-  document.getElementById('statAlerts').textContent = state.alertsTriggered;
   
   showToast(article, keywords);
   if(state.soundEnabled) playBeep();
@@ -881,7 +943,7 @@ function renderKeywords(){
 }
 
 // ============================================================
-// Rendering
+// Rendering - News
 // ============================================================
 function setLoadingState(){
   const grid = document.getElementById('loadingState');
@@ -918,12 +980,19 @@ function applyFilters(){
       a.source.name.toLowerCase().includes(q)
     );
   }
-  filtered.sort((a, b) => {
-    if(state.sort === 'newest') return new Date(b.pubDate || 0) - new Date(a.pubDate || 0);
-    if(state.sort === 'oldest') return new Date(a.pubDate || 0) - new Date(b.pubDate || 0);
-    if(state.sort === 'source') return a.source.name.localeCompare(b.source.name);
-    return 0;
-  });
+  
+  if (state.showMajorOnly) {
+    filtered.forEach(a => a._majorScore = calculateMajorScore(a));
+    filtered.sort((a, b) => b._majorScore - a._majorScore);
+  } else {
+    filtered.sort((a, b) => {
+      if(state.sort === 'newest') return new Date(b.pubDate || 0) - new Date(a.pubDate || 0);
+      if(state.sort === 'oldest') return new Date(a.pubDate || 0) - new Date(b.pubDate || 0);
+      if(state.sort === 'source') return a.source.name.localeCompare(b.source.name);
+      return 0;
+    });
+  }
+  
   state.filtered = filtered;
   renderArticles();
   document.getElementById('resultCount').textContent = filtered.length + ' articles';
@@ -1151,6 +1220,77 @@ function closeModal(){
 }
 
 // ============================================================
+// Markets Logic (Simulated Live Data)
+// ============================================================
+function initMarkets() {
+  // Initialize history for all instruments
+  [...state.markets.indices, ...state.markets.stocks].forEach(inst => {
+    inst.history = Array.from({length: 30}, () => inst.price * (1 + (Math.random() - 0.5) * 0.01));
+  });
+  renderMarkets();
+  setInterval(updateMarkets, 2000);
+}
+
+function updateMarkets() {
+  [...state.markets.indices, ...state.markets.stocks].forEach(inst => {
+    // Random walk
+    const volatility = 0.002;
+    const change = inst.price * (Math.random() - 0.5) * volatility;
+    inst.price = Math.max(inst.price + change, 1);
+    inst.history.push(inst.price);
+    if (inst.history.length > 30) inst.history.shift();
+  });
+  renderMarkets();
+}
+
+function renderMarkets() {
+  const indicesGrid = document.getElementById('indicesGrid');
+  const stocksGrid = document.getElementById('stocksGrid');
+  
+  const renderCard = (inst, isLarge) => {
+    const change = inst.price - inst.prevClose;
+    const changePct = (change / inst.prevClose) * 100;
+    const isUp = change >= 0;
+    const color = isUp ? 'var(--bull)' : 'var(--bear)';
+    const bgColor = isUp ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
+    
+    // Sparkline calculation
+    const min = Math.min(...inst.history);
+    const max = Math.max(...inst.history);
+    const range = max - min || 1;
+    const w = 100, h = 30;
+    const points = inst.history.map((p, i) => {
+      const x = (i / (inst.history.length - 1)) * w;
+      const y = h - ((p - min) / range) * h;
+      return `${x},${y}`;
+    }).join(' ');
+    
+    return `
+      <div class="card p-5" style="cursor:default; border-color: var(--border-2);">
+        <div class="flex items-start justify-between mb-2">
+          <div>
+            <p class="text-xs text-[var(--muted)] font-bold uppercase tracking-wider">${inst.symbol}</p>
+            <p class="text-sm font-semibold text-[var(--fg)]">${inst.name}</p>
+          </div>
+          <div class="text-right">
+            <p class="text-lg font-bold mono">${inst.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+            <p class="text-xs font-bold mono" style="color: ${color};">${isUp ? '+' : ''}${change.toFixed(2)} (${isUp ? '+' : ''}${changePct.toFixed(2)}%)</p>
+          </div>
+        </div>
+        <div class="mt-4 rounded-lg p-2" style="background: ${bgColor};">
+          <svg class="sparkline w-full" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="height: 40px;">
+            <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+          </svg>
+        </div>
+      </div>
+    `;
+  };
+  
+  indicesGrid.innerHTML = state.markets.indices.map(i => renderCard(i, true)).join('');
+  stocksGrid.innerHTML = state.markets.stocks.map(s => renderCard(s, false)).join('');
+}
+
+// ============================================================
 // Clock
 // ============================================================
 function updateClock(){
@@ -1182,7 +1322,6 @@ function init(){
   updateAuthUI();
   
   document.getElementById('statSourcesTotal').textContent = SOURCES.length;
-  document.getElementById('statAlerts').textContent = state.alertsTriggered;
   
   document.getElementById('toggleSound').classList.toggle('on', state.soundEnabled);
   document.getElementById('toggleNotif').classList.toggle('on', state.notifEnabled);
@@ -1234,6 +1373,32 @@ function init(){
     }
   });
   
+  // Drawer Logic
+  document.getElementById('settingsBtn').addEventListener('click', () => {
+    document.body.classList.add('drawer-open');
+  });
+  document.getElementById('closeDrawerBtn').addEventListener('click', () => {
+    document.body.classList.remove('drawer-open');
+  });
+  document.getElementById('backdrop').addEventListener('click', () => {
+    document.body.classList.remove('drawer-open');
+  });
+  
+  // Major/All Toggle
+  document.getElementById('toggleMajorBtn').addEventListener('click', (e) => {
+    state.showMajorOnly = !state.showMajorOnly;
+    const btn = e.currentTarget;
+    const text = btn.querySelector('span') || btn;
+    if (state.showMajorOnly) {
+      text.textContent = 'View All Articles';
+      document.querySelector('#majorToggleBar p.text-sm').textContent = 'Showing most major articles';
+    } else {
+      text.textContent = 'View Major Only';
+      document.querySelector('#majorToggleBar p.text-sm').textContent = 'Showing all articles';
+    }
+    applyFilters();
+  });
+  
   const kwInput = document.getElementById('kwInput');
   document.getElementById('kwAdd').addEventListener('click', () => {
     addKeyword(kwInput.value);
@@ -1279,7 +1444,30 @@ function init(){
       document.querySelectorAll('.sort-chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       state.sort = chip.dataset.sort;
+      // If switching sort, turn off major mode automatically
+      if (state.showMajorOnly) {
+        state.showMajorOnly = false;
+        document.getElementById('toggleMajorBtn').textContent = 'View Major Only';
+        document.querySelector('#majorToggleBar p.text-sm').textContent = 'Showing all articles';
+      }
       applyFilters();
+    });
+  });
+  
+  // Tab Switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      state.activeTab = tab;
+      if (tab === 'news') {
+        document.getElementById('newsView').classList.remove('hidden');
+        document.getElementById('marketsView').classList.add('hidden');
+      } else {
+        document.getElementById('newsView').classList.add('hidden');
+        document.getElementById('marketsView').classList.remove('hidden');
+      }
     });
   });
   
@@ -1299,8 +1487,9 @@ function init(){
   document.getElementById('logOutBtn').addEventListener('click', handleLogOut);
   
   document.getElementById('accountBtn').addEventListener('click', () => {
+    document.body.classList.add('drawer-open');
     document.getElementById('accountBox').scrollIntoView({behavior:'smooth', block:'center'});
-    document.getElementById('accountBox').style.borderColor = 'var(--accent)';
+    setTimeout(() => { document.getElementById('accountBox').style.borderColor = 'var(--accent)'; }, 100);
     setTimeout(() => { document.getElementById('accountBox').style.borderColor = ''; }, 1500);
   });
   
@@ -1309,20 +1498,17 @@ function init(){
   });
   
   document.addEventListener('keydown', e => {
-    if(e.key === 'Escape') closeModal();
-  });
-  
-  // Sidebar Collapse Logic
-  document.getElementById('collapseBtn').addEventListener('click', () => {
-    document.body.classList.add('sidebar-collapsed');
-  });
-  
-  document.getElementById('expandBtn').addEventListener('click', () => {
-    document.body.classList.remove('sidebar-collapsed');
+    if(e.key === 'Escape') {
+      closeModal();
+      document.body.classList.remove('drawer-open');
+    }
   });
   
   updateClock();
   setInterval(updateClock, 1000);
+  
+  // Initialize Markets
+  initMarkets();
   
   // Fetch real live articles immediately on load
   fetchAllFeeds();
@@ -1336,6 +1522,5 @@ window.closeModal = closeModal;
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
-  <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
